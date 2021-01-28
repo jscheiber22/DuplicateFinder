@@ -55,54 +55,55 @@ class Finder:
                                     pulled = self.pullImage(directory + content + "/", subcontent) # Sends more accurate directory info due to subcontent's existence
                                     if pulled:
                                         imagePulledCount += 1
-                                else:
-                                    if not subcontent.endswith('.nfo'):
-                                        print(self.yellow + "\n\nNotice: Ignoring " + subcontent + " because it has the wrong file ending :/\n\n" + self.reset)
 
 
-        print("\n\nPulled " + str(imagePulledCount) + " images.\nNow checking them for duplicates.\n\n")
+        if imagePulledCount > 0:
+            print("\n\nPulled " + str(imagePulledCount) + " images.\nNow checking them for duplicates.\n\n")
 
-        duplicatesFoundCount = 0
-        imagesCheckedCount = 0
-        # Now actually does duplicate checking
-        for directory in os.listdir(self.imageDestination): # each directory in duplicates folder
-            for image in os.listdir(self.imageDestination + directory): # each image in each directory
-                for secondaryDirectory in os.listdir(self.imageDestination): # each directory in duplicates folder to search in for comparing images
-                    for comparingImage in os.listdir(self.imageDestination + secondaryDirectory): # all images each other image is to be compared to
-                        # Although repetitive, it should be updated frequently so that it doesn't reuse any images to kill even more time
-                        f = open('checked.txt', 'r+')
-                        checkedImages = f.readlines()
-                        f.close()
+            duplicatesFoundCount = 0
+            imagesCheckedCount = 0
+            # Now actually does duplicate checking
+            for directory in os.listdir(self.imageDestination): # each directory in duplicates folder
+                for image in os.listdir(self.imageDestination + directory): # each image in each directory
+                    for secondaryDirectory in os.listdir(self.imageDestination): # each directory in duplicates folder to search in for comparing images
+                        for comparingImage in os.listdir(self.imageDestination + secondaryDirectory): # all images each other image is to be compared to
+                            # Although repetitive, it should be updated frequently so that it doesn't reuse any images to kill even more time
+                            f = open('checked.txt', 'r+')
+                            checkedImages = f.readlines()
+                            f.close()
 
-                        used = False
-                        for line in checkedImages:
-                            if comparingImage in line:
-                                used = True
-                                break
+                            used = False
+                            for line in checkedImages:
+                                if comparingImage in line:
+                                    used = True
+                                    break
 
-                        if not image == comparingImage and not used: # avoids it seeing itself duh
-                            image_one = Image.open(self.imageDestination + directory + "/" + image)
-                            image_two = Image.open(self.imageDestination + secondaryDirectory + "/" + comparingImage)
+                            if not image == comparingImage and not used: # avoids it seeing itself duh
+                                image_one = Image.open(self.imageDestination + directory + "/" + image)
+                                image_two = Image.open(self.imageDestination + secondaryDirectory + "/" + comparingImage)
 
-                            diff = ImageChops.difference(image_one, image_two)
+                                diff = ImageChops.difference(image_one, image_two)
 
-                            if diff.getbbox() is None:
-                                # same
-                                f = open('duplicates.txt', 'a')
-                                f.write(image + '\n')
-                                f.close()
-                                duplicatesFoundCount += 1
-                                print(self.red + "\n\nDuplicate " + str(duplicatesFoundCount) + " is " + image + self.reset + "\n\n")
+                                if diff.getbbox() is None:
+                                    # same
+                                    f = open('duplicates.txt', 'a')
+                                    f.write(image + '\n')
+                                    f.close()
+                                    duplicatesFoundCount += 1
+                                    print(self.red + "\n\nDuplicate " + str(duplicatesFoundCount) + " is " + image + self.reset + "\n\n")
 
-                # After checking an image against all other images, its name is added to the checked list in checked.txt and should not be checked against any others
-                f = open('checked.txt', 'a')
-                f.write(image)
-                f.close()
+                    # After checking an image against all other images, its name is added to the checked list in checked.txt and should not be checked against any others
+                    f = open('checked.txt', 'a')
+                    f.write(image)
+                    f.close()
 
-                imagesCheckedCount += 1
-                print("Checked image #" + str(imagesCheckedCount) + " out of " + str(imagePulledCount) + ", ie " + str(round(imagesCheckedCount / imagePulledCount, 2)) + "% complete :).")
+                    imagesCheckedCount += 1
+                    print("Checked image #" + str(imagesCheckedCount) + " out of " + str(imagePulledCount) + ", ie " + str(round(imagesCheckedCount / imagePulledCount, 2)) + "% complete :).")
 
-        print("\nFound " + str(duplicatesFoundCount) + " duplicates.")
+            print("\nFound " + str(duplicatesFoundCount) + " duplicates.")
+
+        else:
+            print("\nNo images pulled. uho :/\n")
 
 
     def pullImage(self, directory, content):
