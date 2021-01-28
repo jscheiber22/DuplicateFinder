@@ -98,7 +98,7 @@ class Finder:
                     f.close()
 
                     imagesCheckedCount += 1
-                    print("Checked image #" + str(imagesCheckedCount) + " out of " + str(imagePulledCount) + ", ie " + str(round(imagesCheckedCount / imagePulledCount, 2)) + "% complete :).")
+                    print("Checked image #" + str(imagesCheckedCount) + " out of " + str(imagePulledCount) + ", ie " + str(round(imagesCheckedCount / imagePulledCount, 3)) + "% complete :).")
 
             print("\nFound " + str(duplicatesFoundCount) + " duplicates.")
 
