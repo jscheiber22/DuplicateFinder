@@ -3,6 +3,7 @@ import sys
 import cv2
 from PIL import Image
 from PIL import ImageChops
+from datetime import datetime
 
 '''
 
@@ -58,7 +59,7 @@ class Finder:
 
 
         if imagePulledCount > 0:
-            print("\n\nPulled " + str(imagePulledCount) + " images.\nNow checking them for duplicates.\n\n")
+            print("\n\nPulled " + str(imagePulledCount) + " images.\nNow checking them for duplicates.\nTime Started: " + datetime.now().strftime("%H:%M") + "\n\n")
 
             duplicatesFoundCount = 0
             imagesCheckedCount = 0
@@ -87,10 +88,10 @@ class Finder:
                                 if diff.getbbox() is None:
                                     # same
                                     f = open('duplicates.txt', 'a')
-                                    f.write(image + '\n')
+                                    f.write(image + ' from ' + directory + '\n')
                                     f.close()
                                     duplicatesFoundCount += 1
-                                    print(self.red + "\n\nDuplicate " + str(duplicatesFoundCount) + " is " + image + self.reset + "\n\n")
+                                    print(self.red + "\n\nDuplicate " + str(duplicatesFoundCount) + " is " + image + ' from ' + directory + self.reset + "\n\n")
 
                     # After checking an image against all other images, its name is added to the checked list in checked.txt and should not be checked against any others
                     f = open('checked.txt', 'a')
