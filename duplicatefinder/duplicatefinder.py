@@ -4,6 +4,7 @@ import cv2
 from PIL import Image
 from PIL import ImageChops
 from datetime import datetime
+import subprocess
 
 '''
 
@@ -30,11 +31,14 @@ class Finder:
         f.close()
 
         imagePulledCount = 0
+        newPulls = []
 
         # Pulls image at x minutes (specified in pullImage method) for each video file within 2 directory layers
         print("\nBeginning to pull images.\n\n")
         for directory in directories:
             directory = directory.replace('\n', '').replace('\r', '')
+            if not directory.endswith('/'):
+                directory = directory + '/'
             if directory is not None and directory != "":
                 print("\nNow checking: " + directory + "\n")
                 directoryContents = os.listdir(directory)
@@ -43,9 +47,10 @@ class Finder:
                         if content.lower().endswith('mp4') or content.lower().endswith('mov') or content.lower().endswith('avi') or content.lower().endswith('mkv') or 'mp4' in content.lower(): # checks for video filetype
                             pulled = self.pullImage(directory, content)
                             if pulled:
+                                newPulls.append(content + '.jpg')
                                 imagePulledCount += 1
-                        else:
-                            print(self.yellow + "\n\nNotice: Ignoring " + content + " because it has the wrong file ending :/\n\n" + self.reset)
+                        # else:
+                            # print(self.yellow + "\n\nNotice: Ignoring " + content + " because it has the wrong file ending :/\n\n" + self.reset)
 
                     elif os.path.isdir(directory + content):
                         contentOfDirectoryContent = os.listdir(directory + content)
@@ -55,6 +60,7 @@ class Finder:
                                     # do all the file stuff but replace content with subcontent
                                     pulled = self.pullImage(directory + content + "/", subcontent) # Sends more accurate directory info due to subcontent's existence
                                     if pulled:
+                                        newPulls.append(subcontent + '.jpg')
                                         imagePulledCount += 1
 
 
@@ -66,42 +72,44 @@ class Finder:
             # Now actually does duplicate checking
             for directory in os.listdir(self.imageDestination): # each directory in duplicates folder
                 for image in os.listdir(self.imageDestination + directory): # each image in each directory
-                    for secondaryDirectory in os.listdir(self.imageDestination): # each directory in duplicates folder to search in for comparing images
-                        for comparingImage in os.listdir(self.imageDestination + secondaryDirectory): # all images each other image is to be compared to
-                            # Although repetitive, it should be updated frequently so that it doesn't reuse any images to kill even more time
-                            f = open('checked.txt', 'r+')
-                            checkedImages = f.readlines()
-                            f.close()
+                    if image in newPulls:
+                        for secondaryDirectory in os.listdir(self.imageDestination): # each directory in duplicates folder to search in for comparing images
+                            for comparingImage in os.listdir(self.imageDestination + secondaryDirectory): # all images each other image is to be compared to
+                                # Although repetitive, it should be updated frequently so that it doesn't reuse any images to kill even more time
+                                f = open('checked.txt', 'r+')
+                                checkedImages = f.readlines()
+                                f.close()
 
-                            used = False
-                            for line in checkedImages:
-                                if comparingImage in line:
-                                    used = True
-                                    break
+                                used = False
+                                for line in checkedImages:
+                                    if comparingImage in line:
+                                        used = True
+                                        break
 
-                            if not image == comparingImage and not used: # avoids it seeing itself duh
-                                image_one = Image.open(self.imageDestination + directory + "/" + image)
-                                image_two = Image.open(self.imageDestination + secondaryDirectory + "/" + comparingImage)
+                                if not image == comparingImage and not used: # avoids it seeing itself duh
+                                    image_one = Image.open(self.imageDestination + directory + "/" + image)
+                                    image_two = Image.open(self.imageDestination + secondaryDirectory + "/" + comparingImage)
 
-                                diff = ImageChops.difference(image_one, image_two)
+                                    diff = ImageChops.difference(image_one, image_two)
 
-                                if diff.getbbox() is None:
-                                    # same
-                                    f = open('duplicates.txt', 'a')
-                                    f.write(image + ' from ' + directory + '\n')
-                                    f.close()
-                                    duplicatesFoundCount += 1
-                                    print(self.red + "\n\nDuplicate " + str(duplicatesFoundCount) + " is " + image + ' from ' + directory + self.reset + "\n\n")
+                                    if diff.getbbox() is None:
+                                        # same
+                                        f = open('duplicates.txt', 'a')
+                                        f.write(image + ' from ' + directory + '\n')
+                                        f.close()
+                                        duplicatesFoundCount += 1
+                                        print(self.red + "\n\nDuplicate " + str(duplicatesFoundCount) + " is " + image + ' from ' + directory + self.reset + "\n\n")
 
-                    # After checking an image against all other images, its name is added to the checked list in checked.txt and should not be checked against any others
-                    f = open('checked.txt', 'a')
-                    f.write(image)
-                    f.close()
+                        # After checking an image against all other images, its name is added to the checked list in checked.txt and should not be checked against any others
+                        f = open('checked.txt', 'a')
+                        f.write(image)
+                        f.close()
 
-                    imagesCheckedCount += 1
-                    print("Checked image #" + str(imagesCheckedCount) + " out of " + str(imagePulledCount) + ", ie " + str(round(imagesCheckedCount / imagePulledCount, 3)) + "% complete :).")
+                        imagesCheckedCount += 1
+                        print("Checked image #" + str(imagesCheckedCount) + " out of " + str(imagePulledCount) + ", ie " + str(round(100 * (imagesCheckedCount / imagePulledCount), 2)) + "% complete :).")
 
             print("\nFound " + str(duplicatesFoundCount) + " duplicates.")
+            print("Time Finished: " + datetime.now().strftime("%H:%M") + "\n\n")
 
         else:
             print("\nNo images pulled. uho :/\n")
@@ -119,7 +127,7 @@ class Finder:
             os.mkdir(imageDestination + directory[1:-1].replace('/', '.'))
         else:
             if os.path.isfile(imageDestination + directory[1:-1].replace('/', '.') + "/" + content + ".jpg"):
-                print(self.yellow + "\n\nNotice: " + imageDestination + directory[1:-1].replace('/', '.') + "/" + content + ".jpg already exists?? Skipping :D\n\n" + self.reset)
+                # print(self.yellow + "\n\nNotice: " + imageDestination + directory[1:-1].replace('/', '.') + "/" + content + ".jpg already exists?? Skipping :D\n\n" + self.reset)
                 return False
 
         vidcap = cv2.VideoCapture(directory + content)
@@ -134,8 +142,14 @@ class Finder:
         else:
             return False
 
+    def resetChecked(self):
+        subprocess.call(['rm', 'checked.txt'])
+        subprocess.call(['touch', 'checked.txt'])
+
 
 
 
 if __name__ == "__main__":
-    Finder().find()
+    finder = Finder()
+    finder.find()
+    finder.resetChecked()
