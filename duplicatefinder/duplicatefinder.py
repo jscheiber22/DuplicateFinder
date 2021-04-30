@@ -18,7 +18,7 @@ Program Assumptions:
 '''
 
 class Finder:
-    def __init__(self):
+    def __init__(self, remove = False):
         self.imageDestination = '/media/sf_CompletedTorrents/Duplicates/'
 
         self.newPulls = []
@@ -144,7 +144,10 @@ class Finder:
 
 
 if __name__ == "__main__":
-    finder = Finder()
+    '''
+    TO DO: Finish the -r arg to make it remove the file or move it to the reddrive/duplicateholding/ folder plaese
+    '''
+    finder = Finder('-r' in sys.argv)
     pool = mp.Pool(6)
     newPulls = []
 
