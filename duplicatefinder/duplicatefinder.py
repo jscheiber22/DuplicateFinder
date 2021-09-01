@@ -18,7 +18,7 @@ Program Assumptions:
 '''
 
 class Finder:
-    def __init__(self, remove = False):
+    def __init__(self, photos = False, remove = False):
         self.imageDestination = '/media/sf_CompletedTorrents/Duplicates/'
 
         self.newPulls = []
@@ -142,31 +142,120 @@ class Finder:
         subprocess.call(['touch', 'checked.txt'])
 
 
+class PhotosFinder:
+    def __init__(self):
+        self.duplicatesFoundCount = 0
+        self.imagesCheckedCount = 0
+        self.foundFilesyucky = []
+
+        # COLORS :)
+        self.red = '\033[91m'
+        self.yellow = '\033[93m'
+        self.reset = '\033[0m'
+
+    def fileWalk(self, rootDirectory):
+        thusFoundFiles = {} # reset with each new directory to keep data usage down
+        for root, direc, files in os.walk(".", topdown=False):
+            for file in files:
+                if '.jpeg' in file:
+                    thusFoundFiles[len(thusFoundFiles)] = (root, file)
+        if len(thusFoundFiles) > 0:
+            return thusFoundFiles
+
+    def compare(self, images):
+        print('resetting chefcked')
+        subprocess.call(['rm', 'checked.txt'])
+        subprocess.call(['touch', 'checked.txt'])
+        for image in images:
+            # print(images[image][1])
+            # print('image')
+            for workerData in self.foundFilesyucky:
+                for comparingImage in workerData:
+                    f = open('checked.txt', 'r+')
+                    checkedImages = f.readlines()
+                    f.close()
+
+                    used = False
+                    for line in checkedImages:
+                        # needs to check image its looking at duh
+                        if os.path.join(workerData[comparingImage][0], workerData[comparingImage][1]) in line:
+                            used = True
+                            break
+
+                    if os.path.join(images[image][0], images[image][1]) != os.path.join(workerData[comparingImage][0], workerData[comparingImage][1]) and not used: # avoids it seeing itself duh
+                        image_one = Image.open(os.path.join(images[image][0], images[image][1]))
+                        image_two = Image.open(os.path.join(workerData[comparingImage][0], workerData[comparingImage][1]))
+
+                        diff = ImageChops.difference(image_one, image_two)
+
+                        if diff.getbbox() is None:
+                            # same
+                            f = open('duplicates.txt', 'a')
+                            f.write("\nDuplicate is " + images[image][1] + ' from ' + images[image][0] + ' which matched with ' + workerData[comparingImage][1] + ' from ' + workerData[comparingImage][0] + '.' + '\n')
+                            f.close()
+                            print(self.red + "\n\nDuplicate is " + images[image][1] + ' from ' + images[image][0] + ' which matched with ' + workerData[comparingImage][1] + ' from ' + workerData[comparingImage][0] + '.' + self.reset + "\n\n")
+
+            # After checking an image against all other images, its name is added to the checked list in checked.txt and should not be checked against any others
+            f = open('checked.txt', 'a')
+            f.write(os.path.join(images[image][0], images[image][1]) + '\n')
+            f.close()
+            print('Another one checked.')
+
 
 if __name__ == "__main__":
     '''
     TO DO: Finish the -r arg to make it remove the file or move it to the reddrive/duplicateholding/ folder plaese
     '''
-    finder = Finder('-r' in sys.argv)
     pool = mp.Pool(6)
-    newPulls = []
 
-    listPath = 'directories.txt'
-    f = open(listPath, 'r')
-    directories = f.readlines()
-    f.close()
+    if '--photos' in sys.argv:
+        finder = PhotosFinder()
+        discoveredFiles = []
 
-    directories = [i for i in directories if not i.startswith('#')]
+        listPath = 'photodir.txt'
+        f = open(listPath, 'r')
+        directories = f.readlines()
+        f.close()
+        directories = [i for i in directories if not i.startswith('#')]
 
-    newPullsyucky = pool.map(finder.pullImages, directories)
-    for pull in newPullsyucky:
-        if pull is not None:
-            newPulls += pull
-    print("\n\nPulled " + str(len(newPulls)) + " images.\nNow checking them for duplicates.\nTime Started: " + datetime.now().strftime("%H:%M") + "\n\n")
+        finder.foundFilesyucky = pool.map(finder.fileWalk, directories)
+        # for workerData in finder.foundFilesyucky: # iterating through dictionary
+        #     for tuple in workerData:
+        #         print(workerData[tuple][0])
 
-    if len(newPulls) > 0:
-        pool.map(finder.compare, newPulls)
+        if len(finder.foundFilesyucky) < 1:
+            print("not enough files found, exiting")
+            exit()
+        # for file in foundFilesyucky:
+        #     if file is not None:
+        #         discoveredFiles += file
+        # foundFilesyucky = []
 
-    print("Time Finished: " + datetime.now().strftime("%H:%M") + "\n\n")
+        print("\n\nChecking for duplicates.\nTime Started: " + datetime.now().strftime("%H:%M") + "\n\n")
 
-    finder.resetChecked()
+        # pool.map(finder.compare, discoveredFiles)
+        pool.map(finder.compare, finder.foundFilesyucky)
+        exit()
+    else:
+        finder = Finder('-r' in sys.argv)
+        newPulls = []
+
+        listPath = 'directories.txt'
+        f = open(listPath, 'r')
+        directories = f.readlines()
+        f.close()
+
+        directories = [i for i in directories if not i.startswith('#')]
+
+        newPullsyucky = pool.map(finder.pullImages, directories)
+        for pull in newPullsyucky:
+            if pull is not None:
+                newPulls += pull
+        print("\n\nPulled " + str(len(newPulls)) + " images.\nNow checking them for duplicates.\nTime Started: " + datetime.now().strftime("%H:%M") + "\n\n")
+
+        if len(newPulls) > 0:
+            pool.map(finder.compare, newPulls)
+
+        print("Time Finished: " + datetime.now().strftime("%H:%M") + "\n\n")
+
+        finder.resetChecked()
