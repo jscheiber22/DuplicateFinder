@@ -1,1 +1,1 @@
-pics/
+/media/sf_redDrive/

@@ -138,8 +138,11 @@ class Finder:
             return False
 
     def resetChecked(self):
-        subprocess.call(['rm', 'checked.txt'])
-        subprocess.call(['touch', 'checked.txt'])
+        try:
+            subprocess.call(['rm', 'checked.txt'])
+            subprocess.call(['touch', 'checked.txt'])
+        except:
+            subprocess.call(['touch', 'checked.txt'])
 
 
 class PhotosFinder:
@@ -164,8 +167,9 @@ class PhotosFinder:
 
     def compare(self, images):
         print('resetting chefcked')
-        subprocess.call(['rm', 'checked.txt'])
-        subprocess.call(['touch', 'checked.txt'])
+        self.resetChecked()
+        if images is None:
+            return
         for image in images:
             # print(images[image][1])
             # print('image')
@@ -200,6 +204,13 @@ class PhotosFinder:
             f.write(os.path.join(images[image][0], images[image][1]) + '\n')
             f.close()
             print('Another one checked.')
+
+    def resetChecked(self):
+        try:
+            subprocess.call(['rm', 'checked.txt'])
+            subprocess.call(['touch', 'checked.txt'])
+        except:
+            subprocess.call(['touch', 'checked.txt'])
 
 
 if __name__ == "__main__":
